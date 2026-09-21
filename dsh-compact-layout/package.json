@@ -1,0 +1,21 @@
+{
+  "name": "dsh-compact-layout",
+  "version": "0.1.0",
+  "description": "Focus/full-screen mobile layout and configurable UI text scale for DSH web.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dsh/index.js",
+  "exports": {
+    ".": "./dsh/index.js",
+    "./client": "./dsh/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["dsh", "cordis.patch.yml", "README.md"],
+  "scripts": { "test": "node --test \"tests/*.spec.mjs\"" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "inject": [], "platform": "web" }
+  },
+  "engines": { "node": ">=20" }
+}

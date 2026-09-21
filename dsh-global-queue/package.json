@@ -1,0 +1,16 @@
+{
+  "name": "dsh-global-queue",
+  "version": "0.1.0",
+  "description": "Per-backend FIFO admission control allowing two concurrent DeepSeek Harness model streams by default.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

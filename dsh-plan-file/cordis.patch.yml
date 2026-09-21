@@ -1,0 +1,18 @@
+# dsh-plan-file: PLAN.md is the plan-mode artifact.
+#
+# The stock plan mode keeps the plan in the model's head until exit_plan_mode
+# dumps the whole thing into a review card. That makes "tweak this one step"
+# cost a full re-emission, and the plan is invisible between turns. This row
+# adds plan_read / plan_write / plan_edit against a real file in the session
+# workspace, a read-only HTTP route the browser polls, and the web panel that
+# renders it beside the chat.
+- insert:
+    - id: plan-file
+      name: 'dsh-plan-file'
+      config:
+        # Workspace-relative. One plan per workspace, not per session, so a
+        # resumed or forked session picks up the same file.
+        fileName: PLAN.md
+        # Refuse a plan larger than this. A plan is a review artifact; past a
+        # few hundred KB something is writing logs into it.
+        maxBytes: 524288

@@ -1,0 +1,4 @@
+- insert:
+    - id: compact-layout
+      name: 'dsh-compact-layout'
+      config: {}

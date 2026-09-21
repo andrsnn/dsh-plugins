@@ -1,0 +1,11 @@
+{
+  "name": "dsh-auto-continue",
+  "version": "0.1.0",
+  "description": "Auto-resume a DeepSeek Harness turn that stopped at the output token limit (finish reason max-tokens) - re-arm the goal (or send 'continue') so an unattended run does not sit waiting for a human, with a consecutive cap so a runaway cannot loop forever.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.19" }
+}
