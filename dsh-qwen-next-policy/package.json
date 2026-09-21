@@ -1,0 +1,16 @@
+{
+  "name": "dsh-qwen-next-policy",
+  "version": "0.1.0",
+  "description": "Execution-discipline system prompt for Qwen3.8 Flash-Next in DeepSeek Harness.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

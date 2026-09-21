@@ -1,0 +1,16 @@
+{
+  "name": "dsh-llamacpp-media-marker-sanitizer",
+  "version": "0.1.0",
+  "description": "Prevents literal llama.cpp multimodal sentinel strings in tool output from poisoning the next model request.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

@@ -1,0 +1,7 @@
+- insert:
+    - id: chat-attachments
+      name: 'dsh-chat-attachments'
+      config:
+        maxFileBytes: 52428800
+        maxFilesPerPick: 8
+        uploadDirectory: '.dsh-uploads'

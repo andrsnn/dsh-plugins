@@ -1,0 +1,11 @@
+{
+  "name": "dsh-image-finder",
+  "version": "0.1.0",
+  "description": "Model-facing image tools for the DeepSeek Harness: find_images (Brave Image API primary, Bing HTML fallback, page og:image scraping) and fetch_image (direct URL download). Downloads land in the session workspace so the agent can view them with read_image.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.19" }
+}

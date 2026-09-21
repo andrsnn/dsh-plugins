@@ -1,0 +1,11 @@
+{
+  "name": "dsh-web-search-ollama",
+  "version": "0.1.0",
+  "description": "A ctx.web search provider for the DeepSeek Harness that queries Ollama Cloud web search first and falls back to the Brave Search API. Registers under the id 'ollama-brave'; point the web seam's searchProvider at it.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.19" }
+}

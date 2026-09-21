@@ -1,0 +1,11 @@
+{
+  "name": "dsh-goal-auto-resume",
+  "version": "0.1.0",
+  "description": "Auto-resume a DeepSeek Harness goal that paused because the model failed (reload, wedge, transport error) - never one a human paused.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.19" }
+}
