@@ -36,6 +36,7 @@ the seam a plugin hooks, so read that plugin's own README before you upgrade.
 |---|---|
 | [`dsh-global-queue`](dsh-global-queue/) | FIFO admission control at the `llm/stream` boundary. Every chat and child agent submits right away, but only N response streams (default 2) reach each backend at once. You can group aliases so they share one allowance. Queued calls stay cancellable. |
 | [`dsh-qwen-next-policy`](dsh-qwen-next-policy/) | A system-prompt section aimed at one exact model id (a Qwen Flash-Next). It keeps thinking on but tells the model to skip busywork on small tasks and stop once the outcome is proven. It sends nothing for any other model. |
+| [`dsh-claude-code-bridge`](dsh-claude-code-bridge/) | Runs Claude Code as a dsh model. It serves an OpenAI-compatible endpoint on `127.0.0.1:3091`; each dsh chat drives one persistent `claude -p` stream-json process, and its text, thinking, tool calls and tool results stream into the chat. Goal rounds reach Claude Code, and a reply ending in `GOAL_COMPLETE` completes the dsh goal. Needs a `claude-code` provider row pointing at the endpoint. |
 | [`dsh-llamacpp-media-marker-sanitizer`](dsh-llamacpp-media-marker-sanitizer/) | llama.cpp `GET /props` exposes a private `<__media_...__>` sentinel. Replaying that string as tool output makes the next request fail to tokenize. This plugin replaces only literal sentinels in text tool results and leaves native media blocks alone. |
 
 ### Images and web
