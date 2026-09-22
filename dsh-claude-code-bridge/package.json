@@ -1,0 +1,14 @@
+{
+  "name": "dsh-claude-code-bridge",
+  "version": "0.1.0",
+  "description": "Run Claude Code as a dsh model: each dsh session drives one persistent `claude -p` stream-json process, and its text, thinking and tool calls stream into the dsh conversation.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "node test.mjs"
+  },
+  "engines": { "node": ">=22.19" }
+}
