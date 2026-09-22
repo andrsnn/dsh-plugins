@@ -60,3 +60,48 @@ test('upload route accepts an attached cold session and writes only below its cw
     await rm(cwd, { recursive: true, force: true })
   }
 })
+
+test('a PDF upload gets its text extracted beside it', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'dsh-chat-attachments-'))
+  // smallest valid one-page PDF whose text layer says "Hello PDF"
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    null,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  const stream = 'BT /F1 24 Tf 20 60 Td (Hello PDF) Tj ET'
+  objects[3] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`
+  let pdf = '%PDF-1.4\n'
+  const offsets = objects.map((body, i) => { const at = pdf.length; pdf += `${i + 1} 0 obj\n${body}\nendobj\n`; return at })
+  const xref = pdf.length
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` +
+    offsets.map((at) => `${String(at).padStart(10, '0')} 00000 n \n`).join('') +
+    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  let route
+  const scope = {
+    webServer: { register(definition) { route = definition; return () => {} } },
+    get(name) {
+      if (name === 'agents') return { get() { return undefined } }
+      if (name === 'sessions') return { get() { return { header: { cwd } } } }
+      return undefined
+    },
+  }
+  _internal.registerUploadRoute(scope, _internal.DEFAULTS)
+  const req = Readable.from([Buffer.from(pdf, 'latin1')])
+  req.method = 'POST'
+  req.url = '/plugin/chat-attachments/upload/session-test'
+  req.headers = { 'content-type': 'application/pdf', 'x-dsh-file-name': 'brief.pdf' }
+  let body
+  const res = { writeHead() {}, end(next) { body = next } }
+  try {
+    await route.handler(req, res)
+    const result = JSON.parse(Buffer.from(body).toString('utf8'))
+    assert.equal(result.textError, undefined)
+    assert.equal(result.textPath, result.path + '.txt')
+    assert.match(await readFile(result.textPath, 'utf8'), /Hello PDF/)
+  } finally {
+    await rm(cwd, { recursive: true, force: true })
+  }
+})

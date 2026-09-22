@@ -1,0 +1,11 @@
+{
+  "name": "dsh-file-shuttle",
+  "version": "0.1.0",
+  "description": "Model-facing file delivery for the DeepSeek Harness: a single persistent background server on a fixed port (Tailscale/LAN reachable) serves expiring share links. send_files publishes files (zipping multiples on the fly) and returns a tailscale/LAN link; shuttle_status lists/purges active links.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.19" }
+}

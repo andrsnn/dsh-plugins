@@ -5,8 +5,10 @@
 // the browser never supplies a destination path. The returned path is inserted
 // into the draft so the model can read it with ordinary workspace tools.
 
+import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { basename, join, resolve, sep } from 'node:path'
 
 export const name = 'chat-attachments'
@@ -17,6 +19,44 @@ const DEFAULTS = {
   maxFileBytes: 50 * 1024 * 1024,
   maxFilesPerPick: 8,
   uploadDirectory: '.dsh-uploads',
+}
+
+// The model's Read tool refuses binary files, so a PDF alone is a dead end.
+// Its text is saved beside it and that path is what the draft points at.
+// Git for Windows ships pdftotext but DSH's PATH usually does not include it.
+const PDFTOTEXT_CANDIDATES = [
+  'C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe',
+  '/usr/bin/pdftotext',
+  '/opt/homebrew/bin/pdftotext',
+  '/usr/local/bin/pdftotext',
+]
+
+function pdftotextBinary() {
+  return PDFTOTEXT_CANDIDATES.find((candidate) => existsSync(candidate)) ?? 'pdftotext'
+}
+
+function isPdf(name, mediaType, data) {
+  return mediaType === 'application/pdf' || /\.pdf$/i.test(name) ||
+    data.subarray(0, 5).toString('latin1') === '%PDF-'
+}
+
+async function extractPdfText(pdfPath, binary = pdftotextBinary()) {
+  const textPath = pdfPath + '.txt'
+  try {
+    if ((await stat(textPath)).size > 0) return { textPath }
+  } catch {}
+  return new Promise((done) => {
+    execFile(binary, ['-layout', '-enc', 'UTF-8', pdfPath, textPath], { timeout: 120000 }, (error) => {
+      if (error) {
+        done({ textError: `pdftotext failed: ${error.code === 'ENOENT' ? 'not installed' : error.message}` })
+        return
+      }
+      stat(textPath).then(
+        (info) => done(info.size > 0 ? { textPath } : { textError: 'the PDF has no text layer (scanned?)' }),
+        () => done({ textError: 'pdftotext wrote no output' }),
+      )
+    })
+  })
 }
 
 function safeFileName(value) {
@@ -147,13 +187,16 @@ function registerUploadRoute(scope, config) {
         } catch (error) {
           if (error?.code !== 'EEXIST') throw error
         }
+        const mediaType = typeof req.headers?.['content-type'] === 'string'
+          ? req.headers['content-type'].split(';', 1)[0]
+          : 'application/octet-stream'
+        const extracted = isPdf(originalName, mediaType, data) ? await extractPdfText(target) : {}
         sendJson(res, 201, {
           path: target,
           name: originalName,
           bytes: data.byteLength,
-          mediaType: typeof req.headers?.['content-type'] === 'string'
-            ? req.headers['content-type'].split(';', 1)[0]
-            : 'application/octet-stream',
+          mediaType,
+          ...extracted,
         })
       } catch (error) {
         sendJson(res, error?.statusCode || 500, { error: error instanceof Error ? error.message : String(error) })
@@ -179,4 +222,6 @@ export const _internal = {
   readRequest,
   assertConfig,
   registerUploadRoute,
+  isPdf,
+  extractPdfText,
 }

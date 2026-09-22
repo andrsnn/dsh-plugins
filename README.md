@@ -2,10 +2,10 @@
 
 # dsh-plugins
 
-**Eleven plugins for the DeepSeek Harness (`dsh`).**
+**Twelve plugins for the DeepSeek Harness (`dsh`).**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Plugins](https://img.shields.io/badge/plugins-11-brightgreen)
+![Plugins](https://img.shields.io/badge/plugins-12-brightgreen)
 ![dsh](https://img.shields.io/badge/dsh-0.1.1--rc.2-orange)
 ![node](https://img.shields.io/badge/node-%E2%89%A518-339933)
 
@@ -45,6 +45,7 @@ the seam a plugin hooks, so read that plugin's own README before you upgrade.
 | [`dsh-image-finder`](dsh-image-finder/) | Two model-facing tools: `find_images` (Brave Image Search API when a key is set, otherwise keyless Bing HTML scraping plus og:image/JSON-LD page scraping) and `fetch_image` (one URL). Downloads are magic-byte-checked images saved in the session workspace, so `read_image` can open them. |
 | [`dsh-image-inline`](dsh-image-inline/) | A model-facing `show_image(path)` that renders a click-to-load preview **inside the web chat**. The tool result is text only; image bytes go through the plugin's own loopback route, so the picture never enters model context. Vendored from [condaThinker/dsh-image-inline](https://github.com/condaThinker/dsh-image-inline) (MIT). |
 | [`dsh-web-search-ollama`](dsh-web-search-ollama/) | A `ctx.web` search provider. It queries Ollama Cloud web search first and falls back to the Brave Search API. It registers as `ollama-brave`; point the web seam's `searchProvider` at that id. |
+| [`dsh-file-shuttle`](dsh-file-shuttle/) | Two model-facing tools: `send_files` publishes files or folders (several are zipped) through one background server on port 8931 and returns expiring download links for the tailnet, the LAN, and loopback. `shuttle_status` lists and purges links. Originals are copied to an outbox, never served in place. |
 
 ### Web UI
 
