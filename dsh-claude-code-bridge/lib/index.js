@@ -56,7 +56,15 @@ const DEFAULTS = {
   cwd: os.homedir(),
   permissionMode: "bypassPermissions",
   toolResultChars: 400,
+  // How much of Claude Code's tool work to show in the chat:
+  //   "count" - one line per turn, e.g. "12 tool calls: Bash 7, Read 4, Edit 1" (default)
+  //   "calls" - one line per tool call, no output
+  //   "full"  - each call plus a quoted excerpt of its output
+  // Overridable without a restart: {"toolDetail": "..."} in ~/.dsh/claude-code-bridge/settings.json
+  toolDetail: "count",
   keepAliveMs: 15000,
+  // After Stop, how long Claude Code gets to end the turn itself before the bridge kills its process tree.
+  stopGraceMs: 3000,
   // model id (as dsh sees it) -> how to launch Claude Code for it
   models: {
     "claude-code-spark": {
@@ -242,14 +250,26 @@ class ClaudeProc {
           sink({ type: "__exit", code: "dead", detail: this.stderr });
           return resolve();
         }
+        let killTimer = null;
         const done = () => {
+          clearTimeout(killTimer);
           this.listener = null;
           signal?.removeEventListener("abort", onAbort);
           resolve();
         };
         const onAbort = () => {
-          // Stop the current Claude Code turn; the process and its session stay alive.
+          // Stop in dsh must stop Claude Code. Ask it to interrupt the turn; if the
+          // turn has not ended within stopGraceMs, kill the whole process tree
+          // (Claude Code and any command it is running). The session is on disk,
+          // so the next message respawns it with --resume.
+          log("stop requested", { key: this.key.slice(0, 16) });
           this.write({ type: "control_request", request_id: randomUUID(), request: { subtype: "interrupt" } });
+          killTimer = setTimeout(() => {
+            if (this.listener) {
+              log("interrupt did not end the turn; killing process tree", { key: this.key.slice(0, 16) });
+              this.killTree();
+            }
+          }, this.opts.stopGraceMs);
         };
         signal?.addEventListener("abort", onAbort);
         this.listener = (ev) => {
@@ -267,11 +287,24 @@ class ClaudeProc {
     this.child.stdin.write(JSON.stringify(obj) + "\n");
   }
 
+  /** Kill Claude Code and every process it started (shell commands, editors). */
+  killTree() {
+    const pid = this.child.pid;
+    if (!pid) return;
+    if (process.platform === "win32") {
+      spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+    } else {
+      try {
+        process.kill(-pid, "SIGKILL");
+      } catch {
+        this.child.kill("SIGKILL");
+      }
+    }
+  }
+
   kill() {
     this.dead = true;
-    try {
-      this.child.kill();
-    } catch {}
+    this.killTree();
   }
 }
 
@@ -331,6 +364,7 @@ function createServer(opts) {
         if (delta.reasoning_content) outReasoning += delta.reasoning_content;
         return;
       }
+      if (res.destroyed || res.writableEnded) return; // dsh stopped the request
       const o = { id, object: "chat.completion.chunk", created, model: modelId, choices: [{ index: 0, delta, finish_reason: finish }] };
       if (usage) o.usage = usage;
       sse(res, o);
@@ -391,6 +425,11 @@ function createServer(opts) {
       if (stream && !res.writableEnded) chunk({});
     }, opts.keepAliveMs);
 
+    let detail = opts.toolDetail;
+    try {
+      detail = JSON.parse(fs.readFileSync(path.join(STATE_DIR, "settings.json"), "utf8")).toolDetail ?? detail;
+    } catch {}
+    const toolCounts = new Map(); // tool name -> calls this turn
     const tools = new Map(); // content block index -> { name, json }
     let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     let sawText = false;
@@ -414,16 +453,19 @@ function createServer(opts) {
         } else if (e.type === "content_block_stop" && tools.has(e.index)) {
           const t = tools.get(e.index);
           tools.delete(e.index);
-          let input = {};
-          try {
-            input = JSON.parse(t.json || "{}");
-          } catch {}
-          chunk({ content: `\n\n**[${t.name}]** \`${summarizeToolInput(input).replace(/`/g, "'")}\`\n` });
+          toolCounts.set(t.name, (toolCounts.get(t.name) ?? 0) + 1);
+          if (detail !== "count") {
+            let input = {};
+            try {
+              input = JSON.parse(t.json || "{}");
+            } catch {}
+            chunk({ content: `\n\n**[${t.name}]** \`${summarizeToolInput(input).replace(/`/g, "'")}\`\n` });
+          }
         } else if (e.type === "message_stop" && sawText) {
           chunk({ content: "\n" });
           sawText = false;
         }
-      } else if (ev.type === "user" && Array.isArray(ev.message?.content)) {
+      } else if (ev.type === "user" && Array.isArray(ev.message?.content) && detail === "full") {
         for (const b of ev.message.content) {
           if (b?.type !== "tool_result") continue;
           let r = toolResultText(b).trim();
@@ -438,7 +480,10 @@ function createServer(opts) {
         if (ev.is_error || ev.subtype !== "success") {
           chunk({ content: `\n\n**Claude Code ended the turn: ${ev.subtype}** ${ev.result ?? ""}\n` });
         }
-        chunk({ content: `\n\n_${ev.num_turns ?? "?"} steps · ${Math.round((ev.duration_ms ?? 0) / 1000)} s_` });
+        const total = [...toolCounts.values()].reduce((a, b) => a + b, 0);
+        const byName = [...toolCounts].sort((a, b) => b[1] - a[1]).map(([n, c]) => `${n} ${c}`).join(", ");
+        const toolLine = total ? ` · ${total} tool calls: ${byName}` : "";
+        chunk({ content: `\n\n_${ev.num_turns ?? "?"} steps · ${Math.round((ev.duration_ms ?? 0) / 1000)} s${toolLine}_` });
       } else if (ev.type === "__exit") {
         chunk({ content: `\n\n**Claude Code process exited (${ev.code}).** ${String(ev.detail ?? "").slice(-800)}` });
       }
