@@ -10,7 +10,10 @@ window.__ModuleLoader__.load({
     var MAX_FILES = 8
 
     function fileDescription(result) {
-      return 'Attached file: `' + result.path + '` (' + result.mediaType + ', ' + result.bytes + ' bytes)'
+      var line = 'Attached file: `' + result.path + '` (' + result.mediaType + ', ' + result.bytes + ' bytes)'
+      if (result.textPath) line += '\nIts extracted text is at `' + result.textPath + '` - read that file, not the PDF.'
+      else if (result.textError) line += '\nText extraction failed: ' + result.textError
+      return line
     }
 
     async function uploadGeneralFile(file, sessionId) {
